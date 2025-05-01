@@ -3,7 +3,7 @@ import random
 import string
 
 # Configuration
-output_dir = 'data'
+output_dir = '../data'
 text_file = os.path.join(output_dir, 'sample_texts.txt')
 pattern_file = os.path.join(output_dir, 'test_patterns.txt')
 num_samples = 10
