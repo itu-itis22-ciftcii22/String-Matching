@@ -1,14 +1,20 @@
 #include <iostream>
 #include <fstream>
-#include <chrono>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <future>
+#include <ctime>
+#include <thread>
+#include <mutex>
+#include <unordered_set>
 #include "naive_matcher.h"
-#include <kmp_matcher.h>
+#include "kmp_matcher.h"
 
 #include "utils.h"
 #include "config.h"
 std::string source_path = std::string(SOURCE_DIR);
+
 
 
 void run_all_tests(StringMatcher& matcher,
@@ -18,28 +24,82 @@ void run_all_tests(StringMatcher& matcher,
     std::vector<std::string> texts = load_entries_from_file(text_path, "---TEXT");
     std::vector<std::string> patterns = load_entries_from_file(pattern_path, "---PATTERN");
 
-    std::ofstream out(results_path);
-    out << "pattern_length,text_length,match_count,time_ms\n";
+    int total = texts.size() * patterns.size();
+    int num_batches = total / 10000;
+    std::vector<std::string> results(total);
 
-    for (const auto& text : texts) {
-        for (const auto& pattern : patterns) {
-            matcher.preprocess(pattern);
+    std::vector<std::pair<int, int>> indices;
+    indices.reserve(total);
+    for (int i = 0; i < texts.size(); ++i)
+        for (int j = 0; j < patterns.size(); ++j)
+            indices.emplace_back(i, j);
 
-            auto start = std::chrono::high_resolution_clock::now();
-            std::vector<int> matches = matcher.search(text);
-            auto end = std::chrono::high_resolution_clock::now();
+    int batch_size = (total + num_batches - 1) / num_batches;
 
-            double duration = std::chrono::duration<double, std::milli>(end - start).count();
+    for (int b = 0; b < num_batches; ++b) {
+        int start = b * batch_size;
+        int end = std::min(start + batch_size, total);
 
-            out << pattern.length() << ","
-                << text.length() << ","
-                << matches.size() << ","
-                << duration << "\n";
+        int num_threads = std::thread::hardware_concurrency();
+        if (num_threads == 0) num_threads = 4;
+
+        int batch_len = end - start;
+        int chunk_size = (batch_len + num_threads - 1) / num_threads;
+
+        std::vector<std::thread> threads;
+
+        for (int t = 0; t < num_threads; ++t) {
+            int chunk_start = start + t * chunk_size;
+            int chunk_end = std::min(start + (t + 1) * chunk_size, end);
+
+            threads.emplace_back([=, &texts, &patterns, &indices, &results, &matcher]() {
+                for (int k = chunk_start; k < chunk_end; ++k) {
+                    int text_idx = indices[k].first;
+                    int pattern_idx = indices[k].second;
+                    int index = text_idx * patterns.size() + pattern_idx;
+
+                    const std::string& text = texts[text_idx];
+                    const std::string& pattern = patterns[pattern_idx];
+
+                    std::clock_t start_t = std::clock();
+                    std::vector<int> matches = matcher.search(text, pattern);
+                    std::clock_t end_t = std::clock();
+
+                    double duration = 1000.0 * (end_t - start_t) / CLOCKS_PER_SEC;
+                    double ratio = static_cast<double>(pattern.length()) / text.length();
+                    double match_density = static_cast<double>(matches.size()) / text.length();
+                    std::unordered_set<char> pattern_chars(pattern.begin(), pattern.end());
+                    std::unordered_set<char> text_chars(text.begin(), text.end());
+                    double uniqueness = static_cast<double>(pattern_chars.size()) / pattern.length();
+
+                    results[index] =
+                        std::to_string(pattern.length()) + "," +
+                        std::to_string(text.length()) + "," +
+                        std::to_string(matches.size()) + "," +
+                        std::to_string(duration) + "," +
+                        std::to_string(ratio) + "," +
+                        std::to_string(match_density) + "," +
+                        std::to_string(text_chars.size()) + "," +
+                        std::to_string(pattern_chars.size()) + "," +
+                        std::to_string(uniqueness) + "\n";
+                }
+            });
         }
+
+        for (auto& thread : threads)
+            thread.join();
+
+        std::cerr << "Finished batch " << (b + 1) << " / " << num_batches << "\n";
     }
 
+    std::ofstream out(results_path);
+    out << "pattern_length,text_length,match_count,time_cpu,ratio,"
+           "match_density,text_alphabet_size,pattern_alphabet_size,uniqueness\n";
+    for (const auto& line : results)
+        out << line;
     out.close();
 }
+
 
 
 int main() {

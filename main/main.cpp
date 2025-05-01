@@ -3,10 +3,9 @@
 #include "naive_matcher.h"
 
 void runTest(StringMatcher& matcher, const std::string& pattern, const std::string& text) {
-    matcher.preprocess(pattern);
 
     auto start = std::chrono::high_resolution_clock::now();
-    std::vector<int> result = matcher.search(text);
+    std::vector<int> result = matcher.search(text, pattern);
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double> duration = end - start;

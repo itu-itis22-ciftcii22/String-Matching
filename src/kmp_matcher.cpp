@@ -2,11 +2,7 @@
 
 #include <vector>
 
-void KMPMatcher::preprocess(const std::string& pat) {
-    pattern = pat;
-}
-
-std::vector<int> KMPMatcher::search(const std::string& text) {
+std::vector<int> KMPMatcher::search(const std::string& text, const std::string& pattern) {
     auto constructLps = [&](std::vector<int> &lps) {
 
         // len stores the length of longest prefix which

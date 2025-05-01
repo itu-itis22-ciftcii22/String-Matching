@@ -6,9 +6,9 @@ import string
 output_dir = '../data'
 text_file = os.path.join(output_dir, 'sample_texts.txt')
 pattern_file = os.path.join(output_dir, 'test_patterns.txt')
-num_samples = 10
-text_lengths = [100, 500, 1000, 5000, 10000]
-pattern_lengths = [3, 5, 10, 20]
+num_samples = 10000
+text_lengths = [100 + int(i * (9900 / 49)) for i in range(50)]
+pattern_lengths = [5 + int(i * (95 / 49)) for i in range(50)]
 
 # Ensure output directory exists
 os.makedirs(output_dir, exist_ok=True)

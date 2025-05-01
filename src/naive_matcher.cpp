@@ -1,10 +1,6 @@
 #include "naive_matcher.h"
 
-void NaiveMatcher::preprocess(const std::string& pat) {
-    pattern = pat;
-}
-
-std::vector<int> NaiveMatcher::search(const std::string& text) {
+std::vector<int> NaiveMatcher::search(const std::string& text, const std::string& pattern) {
     std::vector<int> positions;
     int M = pattern.size();
     int N = text.size();
