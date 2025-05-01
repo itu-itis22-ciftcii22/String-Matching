@@ -1,0 +1,16 @@
+# Ignore CMake build directory
+/cmake-build-debug/
+
+# Ignore hidden directories (e.g., .idea, .venv)
+/.*/
+
+# Optional: ignore CMake-generated files anywhere
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Optional: ignore generated binaries and logs
+*.exe
+*.out
+*.log
