@@ -1,21 +1,35 @@
-#include <iostream>
+#include "utils.h"
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <future>
 #include <ctime>
 #include <thread>
-#include <mutex>
 #include <unordered_set>
-#include "naive_matcher.h"
-#include "kmp_matcher.h"
+#include <iostream>
 
-#include "utils.h"
-#include "config.h"
-std::string source_path = std::string(SOURCE_DIR);
+std::vector<std::string> load_entries_from_file(const std::string& filename, const std::string& delimiter) {
+    std::ifstream file(filename);
+    std::vector<std::string> entries;
+    std::string line, buffer;
+    bool reading = false;
 
-
+    while (std::getline(file, line)) {
+        if (line.find(delimiter) != std::string::npos) {
+            if (!buffer.empty()) {
+                entries.push_back(buffer);
+                buffer.clear();
+            }
+            reading = true;
+            continue;
+        }
+        if (reading) buffer += line;
+    }
+    if (!buffer.empty()) entries.push_back(buffer);
+    return entries;
+}
 
 void run_all_tests(StringMatcher& matcher,
                    const std::string& text_path,
@@ -65,7 +79,7 @@ void run_all_tests(StringMatcher& matcher,
                     std::vector<int> matches = matcher.search(text, pattern);
                     std::clock_t end_t = std::clock();
 
-                    double duration = 1000.0 * (end_t - start_t) / CLOCKS_PER_SEC;
+                    double duration = 1000000.0 * (end_t - start_t) / CLOCKS_PER_SEC;
                     double ratio = static_cast<double>(pattern.length()) / text.length();
                     double match_density = static_cast<double>(matches.size()) / text.length();
                     std::unordered_set<char> pattern_chars(pattern.begin(), pattern.end());
@@ -93,21 +107,9 @@ void run_all_tests(StringMatcher& matcher,
     }
 
     std::ofstream out(results_path);
-    out << "pattern_length,text_length,match_count,time_cpu,ratio,"
+    out << "pattern_length,text_length,match_count,time_micro,ratio,"
            "match_density,text_alphabet_size,pattern_alphabet_size,uniqueness\n";
     for (const auto& line : results)
         out << line;
     out.close();
-}
-
-
-
-int main() {
-    std::string text_path{source_path + "/data/sample_texts.txt"};
-    std::string pattern_path{ source_path + "/data/test_patterns.txt"};
-    NaiveMatcher naive_matcher;
-    run_all_tests(naive_matcher, text_path, pattern_path, source_path +  + "/results/naive_results.csv");
-    KMPMatcher kmp_matcher;
-    run_all_tests(kmp_matcher, text_path, pattern_path, source_path +  + "/results/kmp_results.csv");
-    return 0;
 }
