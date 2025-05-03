@@ -14,3 +14,4 @@ Makefile
 *.exe
 *.out
 *.log
+bin/
