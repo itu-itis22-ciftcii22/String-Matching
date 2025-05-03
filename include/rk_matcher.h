@@ -1,11 +1,11 @@
-#ifndef BM_MATCHER_H
-#define BM_MATCHER_H
+#ifndef RABIN_KARP_MATCHER_H
+#define RABIN_KARP_MATCHER_H
 
 #include "string_matcher.h"
 
-class BMMatcher : public StringMatcher {
+class RKMatcher : public StringMatcher {
 public:
     std::vector<int> search(const std::string& text, const std::string& pattern) override;
 };
 
-#endif //BM_MATCHER_H
+#endif //RABIN_KARP_MATCHER_H

@@ -6,7 +6,7 @@
 
 #include "string_matcher.h"
 
-std::vector<std::string> load_entries_from_file(const std::string& filename, const std::string& delimiter);
+std::vector<std::pair<int, std::string>> load_entries_with_id(const std::string& filename, const std::string& delimiter);
 
 void run_all_tests(StringMatcher& matcher,
                    const std::string& text_path,
