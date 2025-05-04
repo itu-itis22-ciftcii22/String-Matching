@@ -35,19 +35,20 @@ def plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, model_
         _plot(slice_df['log_m'], slice_df['log_time'], "log(pattern_length)", fixed_t, log_t, "n",
               f"{model_name.lower().replace(' ', '_')}_patlen_fixed_t{fixed_t}.png")
 
-def regression_naive_richer(df, output_folder):
+def regression_kmp_richer(df, output_folder):
     df['log_time'] = np.log(df['time_micro'])
     df['log_n'] = np.log(df['text_length'])
     df['log_m'] = np.log(df['pattern_length'])
-    df['log_n_m'] = df['log_n'] * df['log_m']
+    df['log_n_m'] = df['log_n'] * df['log_m']  # included for compatibility, not used in model
 
-    X = sm.add_constant(df[['log_n', 'log_m', 'log_n_m']])
+    X = sm.add_constant(df[['log_n', 'log_m']])
     y = df['log_time']
     model = sm.OLS(y, X).fit()
-    intercept, coef_n, coef_m, coef_nm = model.params
+    intercept, coef_n, coef_m = model.params
+    coef_nm = 0  # no interaction term in richer model for KMP
 
-    with open(os.path.join(output_folder, "naive_richer_model_summary.txt"), 'w') as f:
-        f.write("--- Richer Naive Model Summary ---\n")
+    with open(os.path.join(output_folder, "kmp_richer_model_summary.txt"), 'w') as f:
+        f.write("--- Richer KMP Model Summary ---\n")
         f.write(model.summary().as_text())
 
     plt.figure(figsize=(8, 5))
@@ -56,51 +57,51 @@ def regression_naive_richer(df, output_folder):
     plt.plot(df['log_n'] + df['log_m'], df['log_pred'], color='red', linestyle='none', marker='.', markersize=1.5, label='Fitted Line')
     plt.xlabel("log(n) + log(m)")
     plt.ylabel("log(runtime)")
-    plt.title("Naive Richer Regression: log(n), log(m), log(n)*log(m)")
+    plt.title("KMP Richer Regression: log(n), log(m)")
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(os.path.join(output_folder, "naive_richer_full.png"), dpi=150)
+    plt.savefig(os.path.join(output_folder, "kmp_richer_full.png"), dpi=150)
     plt.close()
 
-    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Richer Naive")
+    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Richer KMP")
 
-def regression_naive_simple(df, output_folder):
+def regression_kmp_simple(df, output_folder):
     df['log_time'] = np.log(df['time_micro'])
     df['log_n'] = np.log(df['text_length'])
     df['log_m'] = np.log(df['pattern_length'])
-    df['log_n_times_m'] = np.log(df['text_length'] * df['pattern_length'])
+    df['log_n_plus_m'] = np.log(df['text_length'] + df['pattern_length'])
 
-    X = sm.add_constant(df[['log_n_times_m']])
+    X = sm.add_constant(df[['log_n_plus_m']])
     y = df['log_time']
     model = sm.OLS(y, X).fit()
     intercept, slope = model.params
 
-    with open(os.path.join(output_folder, "naive_simple_model_summary.txt"), 'w') as f:
-        f.write("--- Simple Naive Model Summary ---\n")
+    with open(os.path.join(output_folder, "kmp_simple_model_summary.txt"), 'w') as f:
+        f.write("--- Simple KMP Model Summary ---\n")
         f.write(model.summary().as_text())
 
     plt.figure(figsize=(8, 5))
-    plt.scatter(df['log_n_times_m'], df['log_time'], s=1, alpha=0.03, color='blue', label='Data')
-    x_vals = np.sort(df['log_n_times_m'])
+    plt.scatter(df['log_n_plus_m'], df['log_time'], s=1, alpha=0.03, color='blue', label='Data')
+    x_vals = np.sort(df['log_n_plus_m'])
     plt.plot(x_vals, intercept + slope * x_vals, color='red', label='Fitted Line')
-    plt.xlabel("log(n × m)")
+    plt.xlabel("log(n + m)")
     plt.ylabel("log(runtime)")
-    plt.title("Naive Simple Regression: log(n × m)")
+    plt.title("KMP Simple Regression: log(n + m)")
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(os.path.join(output_folder, "naive_simple_full.png"), dpi=150)
+    plt.savefig(os.path.join(output_folder, "kmp_simple_full.png"), dpi=150)
     plt.close()
 
     df['log_pred'] = model.predict(X)
     coef_n = coef_m = slope / 2
     coef_nm = 0
-    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Simple Naive")
+    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Simple KMP")
 
 if __name__ == "__main__":
-    input_file = "../results/naive_results.csv"
-    output_dir = "../results/naive/"
+    input_file = "../results/kmp_results.csv"
+    output_dir = "../results/kmp/"
     os.makedirs(output_dir, exist_ok=True)
     data = pd.read_csv(input_file)
 
-    regression_naive_simple(data.copy(), output_dir)
-    regression_naive_richer(data.copy(), output_dir)
+    regression_kmp_simple(data.copy(), output_dir)
+    regression_kmp_richer(data.copy(), output_dir)

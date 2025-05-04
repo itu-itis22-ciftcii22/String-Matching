@@ -35,7 +35,7 @@ def plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, model_
         _plot(slice_df['log_m'], slice_df['log_time'], "log(pattern_length)", fixed_t, log_t, "n",
               f"{model_name.lower().replace(' ', '_')}_patlen_fixed_t{fixed_t}.png")
 
-def regression_naive_richer(df, output_folder):
+def regression_rk_richer(df, output_folder):
     df['log_time'] = np.log(df['time_micro'])
     df['log_n'] = np.log(df['text_length'])
     df['log_m'] = np.log(df['pattern_length'])
@@ -46,8 +46,8 @@ def regression_naive_richer(df, output_folder):
     model = sm.OLS(y, X).fit()
     intercept, coef_n, coef_m, coef_nm = model.params
 
-    with open(os.path.join(output_folder, "naive_richer_model_summary.txt"), 'w') as f:
-        f.write("--- Richer Naive Model Summary ---\n")
+    with open(os.path.join(output_folder, "rk_richer_model_summary.txt"), 'w') as f:
+        f.write("--- Richer Rabin-Karp Model Summary ---\n")
         f.write(model.summary().as_text())
 
     plt.figure(figsize=(8, 5))
@@ -56,15 +56,15 @@ def regression_naive_richer(df, output_folder):
     plt.plot(df['log_n'] + df['log_m'], df['log_pred'], color='red', linestyle='none', marker='.', markersize=1.5, label='Fitted Line')
     plt.xlabel("log(n) + log(m)")
     plt.ylabel("log(runtime)")
-    plt.title("Naive Richer Regression: log(n), log(m), log(n)*log(m)")
+    plt.title("Rabin-Karp Richer Regression: log(n), log(m), log(n)*log(m)")
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(os.path.join(output_folder, "naive_richer_full.png"), dpi=150)
+    plt.savefig(os.path.join(output_folder, "rk_richer_full.png"), dpi=150)
     plt.close()
 
-    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Richer Naive")
+    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Richer Rabin-Karp")
 
-def regression_naive_simple(df, output_folder):
+def regression_rk_simple(df, output_folder):
     df['log_time'] = np.log(df['time_micro'])
     df['log_n'] = np.log(df['text_length'])
     df['log_m'] = np.log(df['pattern_length'])
@@ -75,8 +75,8 @@ def regression_naive_simple(df, output_folder):
     model = sm.OLS(y, X).fit()
     intercept, slope = model.params
 
-    with open(os.path.join(output_folder, "naive_simple_model_summary.txt"), 'w') as f:
-        f.write("--- Simple Naive Model Summary ---\n")
+    with open(os.path.join(output_folder, "rk_simple_model_summary.txt"), 'w') as f:
+        f.write("--- Simple Rabin-Karp Model Summary ---\n")
         f.write(model.summary().as_text())
 
     plt.figure(figsize=(8, 5))
@@ -85,22 +85,23 @@ def regression_naive_simple(df, output_folder):
     plt.plot(x_vals, intercept + slope * x_vals, color='red', label='Fitted Line')
     plt.xlabel("log(n × m)")
     plt.ylabel("log(runtime)")
-    plt.title("Naive Simple Regression: log(n × m)")
+    plt.title("Rabin-Karp Simple Regression: log(n × m)")
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(os.path.join(output_folder, "naive_simple_full.png"), dpi=150)
+    plt.savefig(os.path.join(output_folder, "rk_simple_full.png"), dpi=150)
     plt.close()
 
+    # Adapt for fixed plots
     df['log_pred'] = model.predict(X)
     coef_n = coef_m = slope / 2
     coef_nm = 0
-    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Simple Naive")
+    plot_fixed_var(df, intercept, coef_n, coef_m, coef_nm, output_folder, "Simple Rabin-Karp")
 
 if __name__ == "__main__":
-    input_file = "../results/naive_results.csv"
-    output_dir = "../results/naive/"
+    input_file = "../results/rk_results.csv"
+    output_dir = "../results/rk/"
     os.makedirs(output_dir, exist_ok=True)
     data = pd.read_csv(input_file)
 
-    regression_naive_simple(data.copy(), output_dir)
-    regression_naive_richer(data.copy(), output_dir)
+    regression_rk_simple(data.copy(), output_dir)
+    regression_rk_richer(data.copy(), output_dir)

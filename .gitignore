@@ -15,3 +15,5 @@ Makefile
 *.out
 *.log
 bin/
+results/
+data/
